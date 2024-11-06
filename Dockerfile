@@ -1,34 +1,34 @@
 FROM ubuntu:20.04
-
 LABEL maintainer="wingnut0310 <wingnut0310@gmail.com>"
 
-# Set non-interactive mode for apt-get
-ENV DEBIAN_FRONTEND=noninteractive
+# Set the locale
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV GOTTY_TAG_VER v1.0.1
 
-# Install dependencies and clone ttyd repo
-RUN apt-get update && \
-    apt-get install -y \
-    cmake \
-    g++ \
-    pkg-config \
-    libssl-dev \
-    libjson-c-dev \
-    git \
-    make \
-    build-essential && \
-    git clone https://github.com/tsl0922/ttyd.git && \
-    cd ttyd && \
-    cmake . && \
-    make && \
-    make install && \
-    apt-get clean
+# Install dependencies and SSH server
+RUN apt-get -y update && \
+    apt-get install -y curl openssh-server && \
+    curl -sLk https://github.com/yudai/gotty/releases/download/${GOTTY_TAG_VER}/gotty_linux_amd64.tar.gz \
+    | tar xzC /usr/local/bin && \
+    apt-get purge --auto-remove -y curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists*
 
-# Copy the run script
-COPY run_gotty.sh /run_gotty.sh
-RUN chmod +x /run_gotty.sh
+# Create necessary directories and set up SSH server
+RUN mkdir /var/run/sshd
 
-# Expose required ports
-EXPOSE 8080 22
+# Set the root password (you can change this to another user if needed)
+RUN echo 'root:rootpassword' | chpasswd
 
-# Start ssh and ttyd service
-CMD ["/bin/bash", "/run_gotty.sh"]
+# Expose SSH port and GoTTY port
+EXPOSE 22 8080
+
+# Copy the GoTTY startup script
+COPY /run_gotty.sh /run_gotty.sh
+
+# Make sure the script is executable
+RUN chmod 744 /run_gotty.sh
+
+# Run both SSH and GoTTY when the container starts
+CMD service ssh start && /bin/bash /run_gotty.sh
