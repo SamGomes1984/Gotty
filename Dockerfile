@@ -1,36 +1,34 @@
-# Start with an Ubuntu base image
 FROM ubuntu:20.04
 
-# Set environment variables
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
+LABEL maintainer="wingnut0310 <wingnut0310@gmail.com>"
 
-# Install necessary packages
+# Set non-interactive mode for apt-get
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies and clone ttyd repo
 RUN apt-get update && \
     apt-get install -y \
-    curl \
-    openssh-server \
-    sudo \
-    bash \
-    && rm -rf /var/lib/apt/lists/*
+    cmake \
+    g++ \
+    pkg-config \
+    libssl-dev \
+    libjson-c-dev \
+    git \
+    make \
+    build-essential && \
+    git clone https://github.com/tsl0922/ttyd.git && \
+    cd ttyd && \
+    cmake . && \
+    make && \
+    make install && \
+    apt-get clean
 
-# Create a user for SSH access (you can customize this)
-RUN useradd -m -s /bin/bash ubuntu && \
-    echo "ubuntu:ubuntu" | chpasswd && \
-    adduser ubuntu sudo
+# Copy the run script
+COPY run_gotty.sh /run_gotty.sh
+RUN chmod +x /run_gotty.sh
 
-# Set up the SSH service
-RUN mkdir /var/run/sshd
-EXPOSE 22
+# Expose required ports
+EXPOSE 8080 22
 
-# Install a web terminal (example: ttyd)
-RUN apt-get install -y cmake g++ pkg-config libssl-dev libjson-c-dev \
-    && git clone https://github.com/tsl0922/ttyd.git \
-    && cd ttyd && cmake . && make && make install \
-    && apt-get clean
-
-# Expose ttyd port for web terminal
-EXPOSE 7681
-
-# Start SSH and ttyd
-CMD service ssh start && ttyd bash
+# Start ssh and ttyd service
+CMD ["/bin/bash", "/run_gotty.sh"]
