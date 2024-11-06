@@ -1,4 +1,7 @@
 #!/bin/bash
 
+# Start the SSH service
+service ssh start
 
-/usr/local/bin/gotty --permit-write --reconnect /bin/bash
+# Start ttyd for web-based terminal access
+/usr/local/bin/ttyd bash
