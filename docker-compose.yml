@@ -1,8 +1,18 @@
-my-gotty:
-  hostname: mygotty
-  ports:
-  - 8989:8080
-  tty: true
-  image: modenaf360/gotty:latest
-  stdin_open: true
-  tty: true                     #using bash TTY mode (pseudo-TTY)
+version: '3'
+
+services:
+  my-ubuntu:
+    hostname: myubuntu
+    image: ubuntu:20.04   # Use Ubuntu base image (or your custom image)
+    container_name: ubuntu-vps
+    ports:
+      - "8989:8080"  # Web terminal (ttyd)
+      - "22:22"      # SSH access
+    volumes:
+      - ./run_gotty.sh:/run_gotty.sh  # Mount your run script to the container
+    tty: true
+    stdin_open: true
+    environment:
+      - LANG=en_US.UTF-8
+      - LANGUAGE=en_US:en
+    command: ["/bin/bash", "/run_gotty.sh"]  # Start SSH and ttyd
