@@ -1,23 +1,36 @@
+# Start with an Ubuntu base image
 FROM ubuntu:20.04
-LABEL maintainer="wingnut0310 <wingnut0310@gmail.com>"
 
+# Set environment variables
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
-ENV GOTTY_TAG_VER v1.0.1
 
-RUN apt-get -y update && \
-    apt-get install -y curl && \
-    curl -sLk https://github.com/yudai/gotty/releases/download/${GOTTY_TAG_VER}/gotty_linux_amd64.tar.gz \
-    | tar xzC /usr/local/bin && \
-    apt-get purge --auto-remove -y curl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists*
+# Install necessary packages
+RUN apt-get update && \
+    apt-get install -y \
+    curl \
+    openssh-server \
+    sudo \
+    bash \
+    && rm -rf /var/lib/apt/lists/*
 
+# Create a user for SSH access (you can customize this)
+RUN useradd -m -s /bin/bash ubuntu && \
+    echo "ubuntu:ubuntu" | chpasswd && \
+    adduser ubuntu sudo
 
-COPY /run_gotty.sh /run_gotty.sh
+# Set up the SSH service
+RUN mkdir /var/run/sshd
+EXPOSE 22
 
-RUN chmod 744 /run_gotty.sh
+# Install a web terminal (example: ttyd)
+RUN apt-get install -y cmake g++ pkg-config libssl-dev libjson-c-dev \
+    && git clone https://github.com/tsl0922/ttyd.git \
+    && cd ttyd && cmake . && make && make install \
+    && apt-get clean
 
-EXPOSE 8080
+# Expose ttyd port for web terminal
+EXPOSE 7681
 
-CMD ["/bin/bash","/run_gotty.sh"]
+# Start SSH and ttyd
+CMD service ssh start && ttyd bash
